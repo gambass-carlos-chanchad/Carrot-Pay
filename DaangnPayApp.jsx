@@ -472,10 +472,27 @@ export default function DaangnPayApp() {
   const [cardPage, setCardPage] = useState(0);
   const [settlementPage, setSettlementPage] = useState(0);
   const [txPage, setTxPage] = useState(0);
+  const [phoneScale, setPhoneScale] = useState(1);
   const scrollRef = useRef(null);
   const cardCarouselRef = useRef(null);
   const settlementCarouselRef = useRef(null);
   const txCarouselRef = useRef(null);
+
+  // Compute scale to fit iPhone frame (390×844, plus shadow margin) into the viewport
+  useEffect(() => {
+    const update = () => {
+      const FRAME_W = 410; // 390 + side button + small bleed
+      const FRAME_H = 870; // 844 + shadow bleed
+      const PAD_X = 40;
+      const PAD_Y = 60;
+      const sx = (window.innerWidth - PAD_X) / FRAME_W;
+      const sy = (window.innerHeight - PAD_Y) / FRAME_H;
+      setPhoneScale(Math.min(sx, sy, 1.15));
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   const handlePageScroll = (setter) => (e) => {
     const w = e.currentTarget.clientWidth;
@@ -496,7 +513,7 @@ export default function DaangnPayApp() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-neutral-900 flex items-center justify-center p-6 font-sans">
+    <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center overflow-hidden font-sans">
       {/* === Inline keyframes + scrollbar hide === */}
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -536,28 +553,80 @@ export default function DaangnPayApp() {
         .anim-pop              { animation: pop-in 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
         .anim-modal-in         { animation: modal-in 280ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
         .anim-carrot-wiggle    { animation: carrot-wiggle 2.8s ease-in-out both; transform-origin: bottom center; }
+
+        /* Auto-fit iPhone — scale value computed in JS via inline style */
+        .phone-fit { transform-origin: center center; }
       `}</style>
 
-      {/* === iPhone Frame === */}
-      <div className="relative w-[390px] h-[844px] rounded-[48px] border-[8px] border-gray-800 bg-black shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] overflow-hidden">
-        {/* Notch */}
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[60] w-[110px] h-[34px] bg-black rounded-full pointer-events-none" />
+      {/* === iPhone 14/15 Pro Frame === */}
+      <div className="phone-fit" style={{ transform: `scale(${phoneScale})` }}>
+        <div className="relative w-[390px] h-[844px]">
+          {/* Outer titanium frame */}
+          <div
+            className="absolute inset-0 rounded-[55px]"
+            style={{
+              background:
+                "linear-gradient(135deg, #2a2a2c 0%, #4d4d4f 18%, #2c2c2e 38%, #1c1c1e 60%, #4d4d4f 82%, #2a2a2c 100%)",
+              boxShadow:
+                "0 30px 80px -20px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.04)",
+            }}
+          />
 
-        {/* === Status Bar (frame chrome, always solid) === */}
-        <div className="absolute top-0 inset-x-0 h-[44px] z-50 flex items-center justify-between px-7 pt-2 text-white bg-black">
-          <span className="text-[15px] font-semibold tracking-tight">21:12</span>
-          <div className="flex items-center gap-1.5">
-            <Signal className="w-[15px] h-[15px]" strokeWidth={2.5} />
-            <Wifi className="w-[15px] h-[15px]" strokeWidth={2.5} />
-            <BatteryFull className="w-[20px] h-[20px]" strokeWidth={2} />
-          </div>
-        </div>
+          {/* Side buttons */}
+          {/* Silence switch (left top) */}
+          <div
+            className="absolute -left-[3px] top-[112px] w-[3px] h-[32px] rounded-l"
+            style={{ background: "linear-gradient(90deg, #1a1a1c, #3a3a3c)" }}
+          />
+          {/* Volume up */}
+          <div
+            className="absolute -left-[3px] top-[170px] w-[3px] h-[60px] rounded-l"
+            style={{ background: "linear-gradient(90deg, #1a1a1c, #3a3a3c)" }}
+          />
+          {/* Volume down */}
+          <div
+            className="absolute -left-[3px] top-[244px] w-[3px] h-[60px] rounded-l"
+            style={{ background: "linear-gradient(90deg, #1a1a1c, #3a3a3c)" }}
+          />
+          {/* Power button */}
+          <div
+            className="absolute -right-[3px] top-[200px] w-[3px] h-[100px] rounded-r"
+            style={{ background: "linear-gradient(270deg, #1a1a1c, #3a3a3c)" }}
+          />
+
+          {/* Inner display (screen) */}
+          <div className="absolute inset-[10px] rounded-[46px] bg-black overflow-hidden shadow-[inset_0_0_0_1px_rgba(0,0,0,0.6)]">
+            {/* Dynamic Island — vertically centered in the 42px status bar */}
+            <div
+              className="absolute top-[2.5px] left-1/2 -translate-x-1/2 z-[70] w-[126px] h-[37px] bg-black rounded-full pointer-events-none"
+              style={{
+                boxShadow:
+                  "inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3)",
+              }}
+            >
+              {/* tiny camera lens hint */}
+              <div className="absolute right-[10px] top-1/2 -translate-y-1/2 w-[8px] h-[8px] rounded-full bg-[#0a0a0a] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]">
+                <div className="absolute inset-[2px] rounded-full bg-[#1f2330]" />
+              </div>
+            </div>
+
+            {/* iPhone Status Bar — 9:41 left, signal/wifi/battery right, around the island */}
+            <div className="absolute top-0 inset-x-0 h-[42px] z-[60] flex items-center justify-between px-8 text-white pointer-events-none">
+              <span className="text-[16px] font-semibold tracking-tight tabular-nums leading-none">
+                9:41
+              </span>
+              <div className="flex items-center gap-1">
+                <Signal className="w-[17px] h-[12px]" strokeWidth={2.5} />
+                <Wifi className="w-[15px] h-[12px]" strokeWidth={2.5} />
+                <BatteryFull className="w-[24px] h-[14px]" strokeWidth={2} />
+              </div>
+            </div>
 
         {/* === Scroll Container (header is sticky inside) === */}
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="absolute top-[44px] bottom-[80px] inset-x-0 overflow-y-auto overflow-x-hidden scrollbar-hide bg-black"
+          className="absolute top-[42px] bottom-[80px] inset-x-0 overflow-y-auto overflow-x-hidden scrollbar-hide bg-black"
         >
           {/* Sticky Header */}
           <header
@@ -982,7 +1051,9 @@ export default function DaangnPayApp() {
         {showBenefitModal && (
           <BenefitModal onClose={() => setShowBenefitModal(false)} />
         )}
-      </div>
+          </div>{/* /inner display */}
+        </div>{/* /mockup body */}
+      </div>{/* /.phone-fit */}
     </div>
   );
 }
